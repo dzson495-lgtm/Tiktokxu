@@ -1,0 +1,526 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bảng Quản Lý Xu TikTok Theo Từng Người</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; }
+    /* Cố định cột Ngày khi vuốt ngang */
+    .sticky-col { position: sticky; left: 0; z-index: 20; background-color: #1e293b; }
+    .sticky-header { position: sticky; top: 0; z-index: 30; }
+    .sticky-corner { position: sticky; left: 0; top: 0; z-index: 40; background-color: #0f172a; }
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .table-cell-input { width: 100%; min-width: 65px; text-align: center; background: transparent; border: none; outline: none; font-family: monospace; font-size: 13px; font-weight: 600; padding: 6px 2px; }
+    .table-cell-input:focus { background-color: #334155; border-radius: 4px; }
+  </style>
+</head>
+<body class="p-2 md:p-6 pb-24">
+
+  <!-- Header -->
+  <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 bg-slate-900 border border-slate-800 p-3.5 rounded-2xl">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#FE2C55] to-[#25F4EE] flex items-center justify-center text-black font-extrabold text-sm">
+          <i class="fa-brands fa-tiktok"></i>
+        </span>
+        <h1 class="text-base md:text-lg font-bold text-white">Bảng Thống Kê Xu TikTok</h1>
+      </div>
+      <p class="text-xs text-slate-400 mt-0.5">Phân loại từng người • Xu Thả & Xu DNT • Tính tổng ra VNĐ</p>
+    </div>
+
+    <!-- Nút chức năng -->
+    <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+      <button onclick="openQuickInputModal()" class="flex-1 md:flex-none px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow">
+        <i class="fa-solid fa-plus-circle"></i> Nhập Nhanh
+      </button>
+      <button onclick="copyTableReport()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs rounded-xl flex items-center gap-1.5">
+        <i class="fa-solid fa-copy"></i> Copy Báo Cáo
+      </button>
+      <button onclick="exportToCSV()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs rounded-xl flex items-center gap-1.5">
+        <i class="fa-solid fa-file-excel"></i> Xuất Excel
+      </button>
+    </div>
+  </header>
+
+  <!-- Cấu hình Tháng, Tỷ giá & Quản lý thành viên -->
+  <section class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 mb-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+    <!-- Tháng chọn -->
+    <div class="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+      <span class="text-xs text-slate-400 whitespace-nowrap"><i class="fa-regular fa-calendar mr-1"></i>Tháng:</span>
+      <select id="monthSelect" onchange="changeMonth()" class="bg-transparent text-sm font-bold text-yellow-400 outline-none w-full">
+        <option value="1">Tháng 1</option><option value="2">Tháng 2</option><option value="3">Tháng 3</option>
+        <option value="4">Tháng 4</option><option value="5">Tháng 5</option><option value="6">Tháng 6</option>
+        <option value="7">Tháng 7</option><option value="8">Tháng 8</option><option value="9" selected>Tháng 9</option>
+        <option value="10">Tháng 10</option><option value="11">Tháng 11</option><option value="12">Tháng 12</option>
+      </select>
+    </div>
+
+    <!-- Tỷ giá 2 loại -->
+    <div class="flex items-center justify-between gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800 text-xs">
+      <div class="flex items-center gap-1">
+        <span class="text-yellow-400 font-semibold">Xu DNT:</span>
+        <input type="number" id="rateDnt" value="110" oninput="updateRates()" class="w-14 bg-slate-900 text-center font-mono font-bold text-white rounded px-1 py-0.5 outline-none">
+        <span class="text-slate-500">đ</span>
+      </div>
+      <div class="w-px h-5 bg-slate-800"></div>
+      <div class="flex items-center gap-1">
+        <span class="text-emerald-400 font-semibold">Xu Thả:</span>
+        <input type="number" id="rateTha" value="130" oninput="updateRates()" class="w-14 bg-slate-900 text-center font-mono font-bold text-white rounded px-1 py-0.5 outline-none">
+        <span class="text-slate-500">đ</span>
+      </div>
+    </div>
+
+    <!-- Quản lý thêm người -->
+    <div class="flex items-center gap-2">
+      <input type="text" id="newMemberName" placeholder="Tên người mới..." class="bg-slate-950 border border-slate-800 text-xs rounded-xl px-3 py-2 text-white outline-none flex-1">
+      <button onclick="addMember()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl whitespace-nowrap">
+        <i class="fa-solid fa-user-plus mr-1"></i>Thêm
+      </button>
+    </div>
+  </section>
+
+  <!-- Dashboard Tổng kết toàn đội trong tháng -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+    <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
+      <span class="text-[10px] text-slate-400 uppercase font-bold block">TỔNG XU DNT</span>
+      <span class="text-base font-black text-yellow-400 font-mono mt-1 block" id="statMonthDnt">0</span>
+      <span class="text-[11px] text-slate-400 font-mono" id="statMonthDntVnd">0 đ</span>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
+      <span class="text-[10px] text-slate-400 uppercase font-bold block">TỔNG XU THẢ</span>
+      <span class="text-base font-black text-emerald-400 font-mono mt-1 block" id="statMonthTha">0</span>
+      <span class="text-[11px] text-slate-400 font-mono" id="statMonthThaVnd">0 đ</span>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl">
+      <span class="text-[10px] text-slate-400 uppercase font-bold block">TỔNG XU CẢ ĐỘI</span>
+      <span class="text-base font-black text-white font-mono mt-1 block" id="statMonthAllCoins">0</span>
+      <span class="text-[11px] text-slate-400 font-mono" id="statMemberCount">0 thành viên</span>
+    </div>
+    <div class="bg-gradient-to-br from-emerald-950 to-slate-900 border border-emerald-800/60 p-3 rounded-2xl">
+      <span class="text-[10px] text-emerald-300 uppercase font-bold block">TỔNG TIỀN VNĐ</span>
+      <span class="text-base font-black text-emerald-400 font-mono mt-1 block" id="statMonthTotalVnd">0 đ</span>
+      <span class="text-[10px] text-slate-400">Đã nhân theo 2 tỷ giá</span>
+    </div>
+  </section>
+
+  <!-- KHU VỰC BẢNG TÍNH EXCEL MA TRẬN -->
+  <section class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+    <div class="overflow-x-auto max-h-[68vh] relative">
+      <table class="w-full border-collapse text-xs text-center border border-slate-800" id="matrixTable">
+        <!-- Render Headers bằng JS -->
+        <thead class="sticky-header" id="tableHeader"></thead>
+        <!-- Render Rows bằng JS -->
+        <tbody id="tableBody" class="divide-y divide-slate-800 font-mono"></tbody>
+        <!-- Render Tổng Tháng bằng JS -->
+        <tfoot class="sticky bottom-0 z-30 bg-slate-950 border-t-2 border-emerald-500 font-mono" id="tableFooter"></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <!-- MODAL NHẬP NHANH CHO ĐIỆN THOẠI -->
+  <div id="quickModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-2xl p-5 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-white text-sm flex items-center gap-1.5">
+          <i class="fa-solid fa-pen-to-square text-cyan-400"></i> Nhập số xu nhanh
+        </h3>
+        <button onclick="closeQuickInputModal()" class="text-slate-400 hover:text-white p-1">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-left">
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Chọn ngày:</label>
+          <select id="mDay" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm outline-none font-mono"></select>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Chọn người:</label>
+          <select id="mMember" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white text-sm outline-none"></select>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Loại xu:</label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="cursor-pointer">
+              <input type="radio" name="mType" value="dnt" checked class="peer sr-only">
+              <div class="py-2 text-center rounded-xl border border-slate-800 bg-slate-950 peer-checked:border-yellow-400 peer-checked:bg-yellow-950/20 text-yellow-400 font-bold text-xs">
+                Xu Donate (DNT)
+              </div>
+            </label>
+            <label class="cursor-pointer">
+              <input type="radio" name="mType" value="tha" class="peer sr-only">
+              <div class="py-2 text-center rounded-xl border border-slate-800 bg-slate-950 peer-checked:border-emerald-400 peer-checked:bg-emerald-950/20 text-emerald-400 font-bold text-xs">
+                Xu Thả
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-slate-400 block mb-1">Số lượng xu:</label>
+          <input type="number" id="mCoins" placeholder="Nhập số xu..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white font-mono text-lg outline-none focus:border-cyan-400">
+        </div>
+
+        <div class="flex gap-1.5 overflow-x-auto pb-1">
+          <button onclick="mQuickAdd(500)" class="px-2 py-1 bg-slate-800 text-slate-300 rounded text-xs font-mono">+500</button>
+          <button onclick="mQuickAdd(1000)" class="px-2 py-1 bg-slate-800 text-slate-300 rounded text-xs font-mono">+1K</button>
+          <button onclick="mQuickAdd(5000)" class="px-2 py-1 bg-slate-800 text-slate-300 rounded text-xs font-mono">+5K</button>
+          <button onclick="mQuickAdd(10000)" class="px-2 py-1 bg-slate-800 text-slate-300 rounded text-xs font-mono">+10K</button>
+        </div>
+
+        <button onclick="saveQuickInput()" class="w-full py-3 bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-extrabold text-sm rounded-xl mt-2 active:scale-95 transition">
+          LƯU DỮ LIỆU
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Dữ liệu ban đầu lấy theo đúng ảnh của bạn
+    const DEFAULT_MEMBERS = ["DƯƠNG T", "DƯƠNG", "LONG", "XUÂN", "PHƯƠNG", "KHÁNH"];
+    let members = JSON.parse(localStorage.getItem('tiktok_matrix_members') || JSON.stringify(DEFAULT_MEMBERS));
+    let currentMonth = parseInt(localStorage.getItem('tiktok_matrix_month') || '9');
+    let rateDnt = parseFloat(localStorage.getItem('tiktok_rate_dnt') || '110');
+    let rateTha = parseFloat(localStorage.getItem('tiktok_rate_tha') || '130');
+
+    // matrixData cấu trúc: matrixData[tháng][ngày][tên_thành_viên] = { dnt: 0, tha: 0 }
+    let matrixData = JSON.parse(localStorage.getItem('tiktok_matrix_data') || '{}');
+
+    document.getElementById('monthSelect').value = currentMonth;
+    document.getElementById('rateDnt').value = rateDnt;
+    document.getElementById('rateTha').value = rateTha;
+
+    function initMonthData(m) {
+      if (!matrixData[m]) matrixData[m] = {};
+      for (let day = 1; day <= 31; day++) {
+        if (!matrixData[m][day]) matrixData[m][day] = {};
+        members.forEach(mem => {
+          if (!matrixData[m][day][mem]) {
+            matrixData[m][day][mem] = { dnt: 0, tha: 0 };
+          }
+        });
+      }
+    }
+
+    function saveAll() {
+      localStorage.setItem('tiktok_matrix_members', JSON.stringify(members));
+      localStorage.setItem('tiktok_matrix_month', currentMonth);
+      localStorage.setItem('tiktok_matrix_data', JSON.stringify(matrixData));
+      localStorage.setItem('tiktok_rate_dnt', rateDnt);
+      localStorage.setItem('tiktok_rate_tha', rateTha);
+    }
+
+    function updateRates() {
+      rateDnt = parseFloat(document.getElementById('rateDnt').value) || 0;
+      rateTha = parseFloat(document.getElementById('rateTha').value) || 0;
+      saveAll();
+      renderFooterAndStats();
+    }
+
+    function changeMonth() {
+      currentMonth = parseInt(document.getElementById('monthSelect').value);
+      initMonthData(currentMonth);
+      saveAll();
+      renderFullTable();
+    }
+
+    function addMember() {
+      const nameInput = document.getElementById('newMemberName');
+      const name = nameInput.value.trim().toUpperCase();
+      if (!name) return alert('Vui lòng nhập tên thành viên!');
+      if (members.includes(name)) return alert('Thành viên này đã tồn tại!');
+
+      members.push(name);
+      nameInput.value = '';
+      initMonthData(currentMonth);
+      saveAll();
+      renderFullTable();
+    }
+
+    function removeMember(name) {
+      if (confirm(`Bạn có chắc muốn xóa thành viên "${name}" khỏi bảng?`)) {
+        members = members.filter(m => m !== name);
+        saveAll();
+        renderFullTable();
+      }
+    }
+
+    // Render Headers chuẩn theo ảnh
+    function renderHeaders() {
+      const thead = document.getElementById('tableHeader');
+      let html1 = `
+        <tr class="bg-slate-950 text-white font-bold border-b border-slate-700">
+          <th rowspan="2" class="sticky-corner px-3 py-2 text-yellow-400 bg-red-600 font-black border-r border-slate-700 min-w-[50px]">NGÀY</th>
+      `;
+
+      // Hàng 1: Tên thành viên
+      members.forEach((mem, idx) => {
+        const bgHead = idx % 2 === 0 ? 'bg-yellow-400 text-black' : 'bg-slate-200 text-black';
+        html1 += `
+          <th colspan="2" class="px-2 py-1.5 ${bgHead} border-r border-slate-700 font-black relative group text-xs">
+            <span>${mem}</span>
+            <button onclick="removeMember('${mem}')" class="ml-1 text-red-600 hover:text-red-800 text-[10px]" title="Xóa người này">✕</button>
+          </th>
+        `;
+      });
+
+      // Cột Tổng Ngày
+      html1 += `
+          <th colspan="2" class="px-3 py-1.5 bg-yellow-500 text-black font-black border-l-2 border-yellow-600 min-w-[140px]">TỔNG NGÀY</th>
+        </tr>
+      `;
+
+      // Hàng 2: Phân loại XU DNT và XU THẢ
+      let html2 = `<tr class="bg-slate-950 text-[11px] font-bold border-b border-slate-700">`;
+      members.forEach(() => {
+        html2 += `
+          <th class="px-2 py-1 text-slate-300 bg-slate-900 border-r border-slate-800 min-w-[65px]">XU DNT</th>
+          <th class="px-2 py-1 text-emerald-300 bg-emerald-950/40 border-r border-slate-700 min-w-[65px]">XU THẢ</th>
+        `;
+      });
+
+      html2 += `
+        <th class="px-2 py-1 text-yellow-300 bg-slate-900 border-r border-slate-800 min-w-[70px]">XU DNT</th>
+        <th class="px-2 py-1 text-emerald-300 bg-emerald-950/60 min-w-[70px]">XU THẢ</th>
+      </tr>`;
+
+      thead.innerHTML = html1 + html2;
+    }
+
+    // Render 31 Ngày
+    function renderBody() {
+      const tbody = document.getElementById('tableBody');
+      let html = '';
+
+      for (let day = 1; day <= 31; day++) {
+        let dayTotalDnt = 0;
+        let dayTotalTha = 0;
+
+        html += `<tr class="hover:bg-slate-800/50 transition border-b border-slate-800/80">`;
+        // Cột ngày số vàng
+        html += `<td class="sticky-col py-1 font-bold text-yellow-400 bg-slate-900 border-r border-slate-700 text-center">${day}</td>`;
+
+        // Các ô xu của từng người
+        members.forEach(mem => {
+          const rec = matrixData[currentMonth][day][mem] || { dnt: 0, tha: 0 };
+          const vDnt = rec.dnt || 0;
+          const vTha = rec.tha || 0;
+          dayTotalDnt += vDnt;
+          dayTotalTha += vTha;
+
+          html += `
+            <td class="border-r border-slate-800 p-0">
+              <input type="number" class="table-cell-input text-slate-200" value="${vDnt === 0 ? 0 : vDnt}" onchange="updateCell(${day}, '${mem}', 'dnt', this.value)">
+            </td>
+            <td class="border-r border-slate-700 bg-emerald-950/10 p-0">
+              <input type="number" class="table-cell-input text-emerald-400" value="${vTha === 0 ? 0 : vTha}" onchange="updateCell(${day}, '${mem}', 'tha', this.value)">
+            </td>
+          `;
+        });
+
+        // Cột Tổng Ngày
+        html += `
+          <td class="border-r border-slate-800 font-bold text-yellow-400 bg-yellow-950/20 px-2 py-1" id="row-dnt-${day}">${dayTotalDnt.toLocaleString()}</td>
+          <td class="font-bold text-emerald-400 bg-emerald-950/20 px-2 py-1" id="row-tha-${day}">${dayTotalTha.toLocaleString()}</td>
+        </tr>`;
+      }
+
+      tbody.innerHTML = html;
+    }
+
+    // Cập nhật ô khi gõ trực tiếp
+    function updateCell(day, member, type, value) {
+      const val = parseFloat(value) || 0;
+      matrixData[currentMonth][day][member][type] = val;
+      saveAll();
+
+      // Cập nhật lại tổng của dòng đó
+      let dayTotalDnt = 0, dayTotalTha = 0;
+      members.forEach(m => {
+        dayTotalDnt += matrixData[currentMonth][day][m].dnt || 0;
+        dayTotalTha += matrixData[currentMonth][day][m].tha || 0;
+      });
+      document.getElementById(`row-dnt-${day}`).innerText = dayTotalDnt.toLocaleString();
+      document.getElementById(`row-tha-${day}`).innerText = dayTotalTha.toLocaleString();
+
+      renderFooterAndStats();
+    }
+
+    // Render Hàng Tổng Tháng & Cập nhật Dashboard
+    function renderFooterAndStats() {
+      const tfoot = document.getElementById('tableFooter');
+      let totalAllDnt = 0;
+      let totalAllTha = 0;
+      const memTotals = {};
+
+      members.forEach(m => memTotals[m] = { dnt: 0, tha: 0 });
+
+      for (let day = 1; day <= 31; day++) {
+        members.forEach(m => {
+          const rec = matrixData[currentMonth][day][m] || { dnt: 0, tha: 0 };
+          memTotals[m].dnt += rec.dnt || 0;
+          memTotals[m].tha += rec.tha || 0;
+        });
+      }
+
+      members.forEach(m => {
+        totalAllDnt += memTotals[m].dnt;
+        totalAllTha += memTotals[m].tha;
+      });
+
+      // Render hàng tổng tháng
+      let footHtml = `
+        <tr class="bg-slate-950 font-black text-xs text-center border-t-2 border-yellow-500">
+          <td class="sticky-col py-2.5 text-red-400 bg-slate-950 border-r border-slate-700">TỔNG THÁNG</td>
+      `;
+
+      members.forEach(m => {
+        footHtml += `
+          <td class="border-r border-slate-800 text-yellow-400 py-2.5 px-1">${memTotals[m].dnt.toLocaleString()}</td>
+          <td class="border-r border-slate-700 text-emerald-400 py-2.5 px-1">${memTotals[m].tha.toLocaleString()}</td>
+        `;
+      });
+
+      footHtml += `
+          <td class="border-r border-slate-800 text-yellow-400 bg-yellow-950/40 py-2.5 px-2 text-sm">${totalAllDnt.toLocaleString()}</td>
+          <td class="text-emerald-400 bg-emerald-950/40 py-2.5 px-2 text-sm">${totalAllTha.toLocaleString()}</td>
+        </tr>
+      `;
+
+      tfoot.innerHTML = footHtml;
+
+      // Tính tiền ra VNĐ
+      const vndDnt = totalAllDnt * rateDnt;
+      const vndTha = totalAllTha * rateTha;
+      const totalVnd = vndDnt + vndTha;
+
+      document.getElementById('statMonthDnt').innerText = totalAllDnt.toLocaleString();
+      document.getElementById('statMonthDntVnd').innerText = formatMoney(vndDnt);
+      document.getElementById('statMonthTha').innerText = totalAllTha.toLocaleString();
+      document.getElementById('statMonthThaVnd').innerText = formatMoney(vndTha);
+      document.getElementById('statMonthAllCoins').innerText = (totalAllDnt + totalAllTha).toLocaleString() + ' xu';
+      document.getElementById('statMemberCount').innerText = `${members.length} người trong bảng`;
+      document.getElementById('statMonthTotalVnd').innerText = formatMoney(totalVnd);
+    }
+
+    function renderFullTable() {
+      initMonthData(currentMonth);
+      renderHeaders();
+      renderBody();
+      renderFooterAndStats();
+    }
+
+    function formatMoney(num) {
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+    }
+
+    // Modal nhập nhanh
+    function openQuickInputModal() {
+      const mDay = document.getElementById('mDay');
+      const mMember = document.getElementById('mMember');
+
+      mDay.innerHTML = Array.from({length: 31}, (_, i) => `<option value="${i+1}">Ngày ${i+1}</option>`).join('');
+      // Tự chọn ngày hôm nay nếu nằm trong tháng
+      const today = new Date().getDate();
+      mDay.value = today <= 31 ? today : 1;
+
+      mMember.innerHTML = members.map(m => `<option value="${m}">${m}</option>`).join('');
+      document.getElementById('mCoins').value = '';
+      document.getElementById('quickModal').classList.remove('hidden');
+    }
+
+    function closeQuickInputModal() {
+      document.getElementById('quickModal').classList.add('hidden');
+    }
+
+    function mQuickAdd(val) {
+      const input = document.getElementById('mCoins');
+      input.value = (parseFloat(input.value) || 0) + val;
+    }
+
+    function saveQuickInput() {
+      const day = parseInt(document.getElementById('mDay').value);
+      const mem = document.getElementById('mMember').value;
+      const type = document.querySelector('input[name="mType"]:checked').value;
+      const coins = parseFloat(document.getElementById('mCoins').value) || 0;
+
+      if (!coins) return alert('Vui lòng nhập số xu!');
+
+      matrixData[currentMonth][day][mem][type] = (matrixData[currentMonth][day][mem][type] || 0) + coins;
+      saveAll();
+      closeQuickInputModal();
+      renderFullTable();
+    }
+
+    // Sao chép báo cáo chi tiết gửi Zalo / Chat
+    function copyTableReport() {
+      let totalAllDnt = 0, totalAllTha = 0;
+      let memberLines = [];
+
+      members.forEach(m => {
+        let mDnt = 0, mTha = 0;
+        for (let day = 1; day <= 31; day++) {
+          mDnt += matrixData[currentMonth][day][m]?.dnt || 0;
+          mTha += matrixData[currentMonth][day][m]?.tha || 0;
+        }
+        totalAllDnt += mDnt;
+        totalAllTha += mTha;
+        const mVnd = (mDnt * rateDnt) + (mTha * rateTha);
+        memberLines.push(`• ${m}: DNT ${mDnt.toLocaleString()} xu | Thả ${mTha.toLocaleString()} xu ➔ ${formatMoney(mVnd)}`);
+      });
+
+      const totalVnd = (totalAllDnt * rateDnt) + (totalAllTha * rateTha);
+
+      const text = `📊 BÁO CÁO XU TIKTOK - THÁNG ${currentMonth}\n` +
+        `------------------------------------\n` +
+        memberLines.join('\n') + '\n' +
+        `------------------------------------\n` +
+        `🎁 TỔNG XU DNT: ${totalAllDnt.toLocaleString()} xu (${formatMoney(totalAllDnt * rateDnt)})\n` +
+        `🪂 TỔNG XU THẢ: ${totalAllTha.toLocaleString()} xu (${formatMoney(totalAllTha * rateTha)})\n` +
+        `💰 TỔNG CỘNG TIỀN: ${formatMoney(totalVnd)}`;
+
+      navigator.clipboard.writeText(text).then(() => alert(`Đã copy báo cáo Tháng ${currentMonth} vào bộ nhớ tạm!`));
+    }
+
+    // Xuất Excel đúng cấu trúc file bảng tính
+    function exportToCSV() {
+      let csv = `\uFEFFBẢNG THEO DÕI XU TIKTOK - THÁNG ${currentMonth}\n`;
+      // Header 1
+      csv += "NGÀY," + members.map(m => `"${m}",""`).join(',') + ',"TỔNG NGÀY",""\n';
+      // Header 2
+      csv += "NGÀY," + members.map(() => `"XU DNT","XU THẢ"`).join(',') + ',"XU DNT","XU THẢ"\n';
+
+      for (let day = 1; day <= 31; day++) {
+        let row = [`${day}`];
+        let dayDnt = 0, dayTha = 0;
+        members.forEach(m => {
+          const rec = matrixData[currentMonth][day][m] || { dnt: 0, tha: 0 };
+          row.push(rec.dnt || 0);
+          row.push(rec.tha || 0);
+          dayDnt += rec.dnt || 0;
+          dayTha += rec.tha || 0;
+        });
+        row.push(dayDnt);
+        row.push(dayTha);
+        csv += row.join(',') + '\n';
+      }
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Bang_Xu_TikTok_Thang_${currentMonth}.csv`;
+      a.click();
+    }
+
+    // Khởi chạy
+    initMonthData(currentMonth);
+    renderFullTable();
+  </script>
+</body>
+</html>
